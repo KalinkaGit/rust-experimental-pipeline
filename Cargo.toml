@@ -1,0 +1,16 @@
+[package]
+name = "rust_pipeline_demo"
+version = "0.1.0"
+edition = "2024"
+description = "Projet de démonstration pour pipeline CI/CD Jenkins"
+authors = ["pipeline-demo"]
+
+[[bin]]
+name = "rust_pipeline_demo"
+path = "src/main.rs"
+
+[lib]
+name = "rust_pipeline_demo"
+path = "src/lib.rs"
+
+[dependencies]
