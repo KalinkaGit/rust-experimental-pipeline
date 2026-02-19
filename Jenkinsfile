@@ -32,7 +32,7 @@ pipeline {
 
         stage('Test') {
             steps {
-                sh 'cargo test -- --test-output immediate 2>&1'
+                sh 'cargo test -- --show-output 2>&1'
             }
             post {
                 success { echo 'Tous les tests sont passés' }
