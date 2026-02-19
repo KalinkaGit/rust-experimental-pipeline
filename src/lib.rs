@@ -15,11 +15,7 @@ pub fn multiply(a: i64, b: i64) -> i64 {
 
 /// Divise a par b. Retourne None si b == 0.
 pub fn divide(a: i64, b: i64) -> Option<i64> {
-    if b == 0 {
-        None
-    } else {
-        Some(a / b)
-    }
+    if b == 0 { None } else { Some(a / b) }
 }
 
 /// Retourne le n-ième nombre de Fibonacci (itératif).
