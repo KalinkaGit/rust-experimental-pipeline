@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
+    }
+
     options {
         timestamps()
         timeout(time: 30, unit: 'MINUTES')
