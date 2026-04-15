@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
+        PATH = "${env.HOME}/.cargo/bin:/opt/homebrew/bin/:${env.PATH}"
         APP_NAME = "rust_pipeline_demo"
         NEXUS_URL = "http://localhost:8081"
         NEXUS_REPO = "rust-artifacts"
