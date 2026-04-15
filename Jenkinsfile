@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
-        NEXUS_URL = "http://localhost:8081"
+        NEXUS_URL = "http://localhost:9000"
         NEXUS_REPO = "rust-artifacts"
     }
 
