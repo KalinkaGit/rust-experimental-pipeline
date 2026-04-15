@@ -106,21 +106,17 @@ pipeline {
                 )]) {
                     sh '''
                         set -e
-
+        
                         curl -f -u "$NEXUS_USER:$NEXUS_PASS" \
                              --upload-file "${ARTIFACT_NAME}" \
                              "${NEXUS_URL}/repository/${NEXUS_REPO}/${ARTIFACT_NAME}"
-
-                        curl -f -I -u "$NEXUS_USER:$NEXUS_PASS" \
-                             "${NEXUS_URL}/repository/${NEXUS_REPO}/${ARTIFACT_NAME}"
                     '''
                 }
-
+        
                 echo "Artefact Nexus : ${env.NEXUS_URL}/repository/${env.NEXUS_REPO}/${env.ARTIFACT_NAME}"
                 echo "Navigation Nexus : ${env.NEXUS_URL}/service/rest/repository/browse/${env.NEXUS_REPO}/"
             }
         }
-    }
 
     post {
         always {
