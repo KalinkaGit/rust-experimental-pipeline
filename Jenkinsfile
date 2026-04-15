@@ -43,6 +43,33 @@ pipeline {
             steps {
                 sh '''
                     cargo llvm-cov --lcov --output-path lcov.info
+        
+                    python3 -c "
+        lines = open('lcov.info').read().splitlines()
+        output = ['<coverage version=\"1\">']
+        current_file = None
+        line_hits = {}
+        
+        for line in lines:
+            if line.startswith('SF:'):
+                current_file = line[3:]
+                line_hits = {}
+            elif line.startswith('DA:'):
+                parts = line[3:].split(',')
+                lineno = parts[0]
+                hits = int(parts[1].split()[0])
+                line_hits[lineno] = hits > 0
+            elif line == 'end_of_record' and current_file:
+                output.append('  <file path=\"' + current_file + '\">')
+                for lineno, covered in sorted(line_hits.items(), key=lambda x: int(x[0])):
+                    output.append('    <lineToCover lineNumber=\"' + lineno + '\" covered=\"' + str(covered).lower() + '\"/>')
+                output.append('  </file>')
+                current_file = None
+        
+        output.append('</coverage>')
+        open('coverage.xml', 'w').write('\n'.join(output))
+        print('coverage.xml generated')
+        "
                 '''
             }
             post {
@@ -77,7 +104,7 @@ pipeline {
                           -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
                           -Dsonar.projectName=${APP_NAME} \
                           -Dsonar.sources=src \
-                          -Dsonar.coverageReportPaths=lcov.info \
+                          -Dsonar.coverageReportPaths=coverage.xml \
                           -Dsonar.exclusions=target/**
                     '''
                 }
