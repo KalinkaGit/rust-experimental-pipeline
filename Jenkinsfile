@@ -44,9 +44,9 @@ pipeline {
                 sh '''
                     cargo llvm-cov --lcov --output-path lcov.info
 
-                    python3 -c "
+                    cat > /tmp/lcov_to_sonar.py << 'PYEOF'
 lines = open('lcov.info').read().splitlines()
-output = ['<coverage version=\"1\">']
+output = ['<coverage version="1">']
 current_file = None
 line_hits = {}
 
@@ -60,16 +60,19 @@ for line in lines:
         hits = int(parts[1].split()[0])
         line_hits[lineno] = hits > 0
     elif line == 'end_of_record' and current_file:
-        output.append('  <file path=\"' + current_file + '\">')
+        output.append('  <file path="' + current_file + '">')
         for lineno, covered in sorted(line_hits.items(), key=lambda x: int(x[0])):
-            output.append('    <lineToCover lineNumber=\"' + lineno + '\" covered=\"' + str(covered).lower() + '\"/>')
+            output.append('    <lineToCover lineNumber="' + lineno + '" covered="' + str(covered).lower() + '"/>')
         output.append('  </file>')
         current_file = None
 
 output.append('</coverage>')
 open('coverage.xml', 'w').write('\\n'.join(output))
 print('coverage.xml generated')
-"
+PYEOF
+
+                    python3 /tmp/lcov_to_sonar.py
+                    cat coverage.xml
                 '''
             }
             post {
