@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        PATH = "${env.HOME}/.cargo/bin:/opt/homebrew/bin/:${env.PATH}"
+        PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
         APP_NAME = "rust_pipeline_demo"
         NEXUS_URL = "http://localhost:8081"
         NEXUS_REPO = "rust-artifacts"
@@ -44,7 +44,7 @@ pipeline {
                 sh '''
                     cargo llvm-cov --lcov --output-path lcov.info
 
-python3 -c "
+                    python3 -c "
 lines = open('lcov.info').read().splitlines()
 output = ['<coverage version=\"1\">']
 current_file = None
@@ -67,7 +67,7 @@ for line in lines:
         current_file = None
 
 output.append('</coverage>')
-open('coverage.xml', 'w').write('\n'.join(output))
+open('coverage.xml', 'w').write('\\n'.join(output))
 print('coverage.xml generated')
 "
                 '''
@@ -96,7 +96,7 @@ print('coverage.xml generated')
             }
         }
 
-stage('SonarQube Analysis') {
+        stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     sh '''
