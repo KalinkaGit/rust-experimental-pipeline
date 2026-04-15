@@ -3,8 +3,10 @@ pipeline {
 
     environment {
         PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
+        APP_NAME = "rust_pipeline_demo"
         NEXUS_URL = "http://localhost:8081"
         NEXUS_REPO = "rust-artifacts"
+        ARTIFACT_NAME = "rust_pipeline_demo-${BUILD_NUMBER}.tar.gz"
     }
 
     options {
@@ -18,47 +20,66 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
-                sh 'rustc --version && cargo --version'
+                sh '''
+                    rustc --version
+                    cargo --version
+                    git rev-parse --short HEAD
+                '''
             }
         }
 
         stage('Build') {
             steps {
-                sh 'cargo build --release 2>&1'
+                sh 'cargo build --release'
             }
             post {
-                success { echo 'Build OK' }
-                failure { echo 'Build FAILED' }
+                success {
+                    echo 'Build OK'
+                }
+                failure {
+                    echo 'Build FAILED'
+                }
             }
         }
 
         stage('Test') {
             steps {
-                sh 'cargo test -- --show-output 2>&1'
+                sh 'cargo test -- --show-output'
             }
             post {
-                success { echo 'Tous les tests sont passés' }
-                failure { echo 'Des tests ont échoué' }
+                success {
+                    echo 'Tous les tests sont passés'
+                }
+                failure {
+                    echo 'Des tests ont échoué'
+                }
             }
         }
 
         stage('Lint (Clippy)') {
             steps {
-                sh 'rustup component add clippy || true'
-                sh 'cargo clippy -- -D warnings 2>&1'
+                sh '''
+                    rustup component add clippy || true
+                    cargo clippy -- -D warnings
+                '''
             }
         }
 
         stage('Format Check') {
             steps {
-                sh 'rustup component add rustfmt || true'
-                sh 'cargo fmt -- --check 2>&1'
+                sh '''
+                    rustup component add rustfmt || true
+                    cargo fmt -- --check
+                '''
             }
         }
 
         stage('Archive Artefacts') {
             steps {
-                archiveArtifacts artifacts: 'target/release/rust_pipeline_demo',
+                sh '''
+                    test -f target/release/${APP_NAME}
+                '''
+                archiveArtifacts artifacts: "target/release/${APP_NAME}",
                                  fingerprint: true,
                                  allowEmptyArchive: false
             }
@@ -67,9 +88,11 @@ pipeline {
         stage('Prepare Artifact') {
             steps {
                 sh '''
-                mkdir -p artifacts
-                cp target/release/rust_pipeline_demo artifacts/
-                tar -czf rust_pipeline_demo.tar.gz artifacts
+                    rm -rf artifacts
+                    mkdir -p artifacts
+                    cp target/release/${APP_NAME} artifacts/
+                    tar -czf ${ARTIFACT_NAME} artifacts
+                    ls -lh ${ARTIFACT_NAME}
                 '''
             }
         }
@@ -81,13 +104,20 @@ pipeline {
                     usernameVariable: 'NEXUS_USER',
                     passwordVariable: 'NEXUS_PASS'
                 )]) {
-
                     sh '''
-                    curl -u $NEXUS_USER:$NEXUS_PASS \
-                         --upload-file rust_pipeline_demo.tar.gz \
-                         $NEXUS_URL/repository/$NEXUS_REPO/rust_pipeline_demo-${BUILD_NUMBER}.tar.gz
+                        set -e
+
+                        curl -f -u "$NEXUS_USER:$NEXUS_PASS" \
+                             --upload-file "${ARTIFACT_NAME}" \
+                             "${NEXUS_URL}/repository/${NEXUS_REPO}/${ARTIFACT_NAME}"
+
+                        curl -f -I -u "$NEXUS_USER:$NEXUS_PASS" \
+                             "${NEXUS_URL}/repository/${NEXUS_REPO}/${ARTIFACT_NAME}"
                     '''
                 }
+
+                echo "Artefact Nexus : ${env.NEXUS_URL}/repository/${env.NEXUS_REPO}/${env.ARTIFACT_NAME}"
+                echo "Navigation Nexus : ${env.NEXUS_URL}/service/rest/repository/browse/${env.NEXUS_REPO}/"
             }
         }
     }
