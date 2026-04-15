@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         PATH = "${env.HOME}/.cargo/bin:${env.PATH}"
+        NEXUS_URL = "http://localhost:8081"
+        NEXUS_REPO = "rust-artifacts"
     }
 
     options {
@@ -59,6 +61,33 @@ pipeline {
                 archiveArtifacts artifacts: 'target/release/rust_pipeline_demo',
                                  fingerprint: true,
                                  allowEmptyArchive: false
+            }
+        }
+
+        stage('Prepare Artifact') {
+            steps {
+                sh '''
+                mkdir -p artifacts
+                cp target/release/rust_pipeline_demo artifacts/
+                tar -czf rust_pipeline_demo.tar.gz artifacts
+                '''
+            }
+        }
+
+        stage('Upload to Nexus') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'nexus',
+                    usernameVariable: 'NEXUS_USER',
+                    passwordVariable: 'NEXUS_PASS'
+                )]) {
+
+                    sh '''
+                    curl -u $NEXUS_USER:$NEXUS_PASS \
+                         --upload-file rust_pipeline_demo.tar.gz \
+                         $NEXUS_URL/repository/$NEXUS_REPO/rust_pipeline_demo-${BUILD_NUMBER}.tar.gz
+                    '''
+                }
             }
         }
     }
