@@ -9,7 +9,8 @@ fn binary_prints_expected_demo_output() {
 
     assert!(output.status.success(), "binary exited with failure");
 
-    let stdout = String::from_utf8(output.stdout).expect("binary output was not valid UTF-8");
+    let stdout =
+        String::from_utf8(output.stdout).expect("binary output was not valid UTF-8");
 
     assert!(stdout.contains("=== Rust Pipeline Demo ==="));
     assert!(stdout.contains("Arithmétique :"));
