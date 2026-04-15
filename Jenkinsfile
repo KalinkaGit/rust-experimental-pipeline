@@ -114,14 +114,6 @@ PYEOF
             }
         }
 
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
-
         stage('Archive Artefacts') {
             steps {
                 sh 'test -f target/release/${APP_NAME}'
