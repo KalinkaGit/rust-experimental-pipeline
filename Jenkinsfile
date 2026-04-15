@@ -7,6 +7,7 @@ pipeline {
         NEXUS_URL = "http://localhost:8081"
         NEXUS_REPO = "rust-artifacts"
         ARTIFACT_NAME = "rust_pipeline_demo-${BUILD_NUMBER}.tar.gz"
+        SONAR_PROJECT_KEY = "rust_pipeline_demo"
     }
 
     options {
@@ -33,26 +34,20 @@ pipeline {
                 sh 'cargo build --release'
             }
             post {
-                success {
-                    echo 'Build OK'
-                }
-                failure {
-                    echo 'Build FAILED'
-                }
+                success { echo 'Build OK' }
+                failure { echo 'Build FAILED' }
             }
         }
 
-        stage('Test') {
+        stage('Test & Coverage') {
             steps {
-                sh 'cargo test -- --show-output'
+                sh '''
+                    cargo llvm-cov --lcov --output-path lcov.info
+                '''
             }
             post {
-                success {
-                    echo 'Tous les tests sont passés'
-                }
-                failure {
-                    echo 'Des tests ont échoué'
-                }
+                success { echo 'Tous les tests sont passés' }
+                failure { echo 'Des tests ont échoué' }
             }
         }
 
@@ -74,11 +69,32 @@ pipeline {
             }
         }
 
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                        sonar-scanner \
+                          -Dsonar.projectKey=${SONAR_PROJECT_KEY} \
+                          -Dsonar.projectName=${APP_NAME} \
+                          -Dsonar.sources=src \
+                          -Dsonar.coverageReportPaths=lcov.info \
+                          -Dsonar.exclusions=target/**
+                    '''
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
         stage('Archive Artefacts') {
             steps {
-                sh '''
-                    test -f target/release/${APP_NAME}
-                '''
+                sh 'test -f target/release/${APP_NAME}'
                 archiveArtifacts artifacts: "target/release/${APP_NAME}",
                                  fingerprint: true,
                                  allowEmptyArchive: false
@@ -106,13 +122,11 @@ pipeline {
                 )]) {
                     sh '''
                         set -e
-
                         curl -f -u "$NEXUS_USER:$NEXUS_PASS" \
                              --upload-file "${ARTIFACT_NAME}" \
                              "${NEXUS_URL}/repository/${NEXUS_REPO}/${ARTIFACT_NAME}"
                     '''
                 }
-
                 echo "Artefact Nexus : ${env.NEXUS_URL}/repository/${env.NEXUS_REPO}/${env.ARTIFACT_NAME}"
                 echo "Navigation Nexus : ${env.NEXUS_URL}/service/rest/repository/browse/${env.NEXUS_REPO}/"
             }
@@ -124,11 +138,7 @@ pipeline {
             echo "Pipeline terminé — statut : ${currentBuild.currentResult}"
             cleanWs()
         }
-        success {
-            echo 'Pipeline réussi !'
-        }
-        failure {
-            echo 'Pipeline en échec.'
-        }
+        success { echo 'Pipeline réussi !' }
+        failure { echo 'Pipeline en échec.' }
     }
 }
